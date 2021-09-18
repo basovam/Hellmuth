@@ -1,0 +1,3 @@
+Symbol,CompanyName,Sector_index,Sector,Industry,MCap,Shares,dividendYield,PayRat,PE,PEG,PS,PB,EVR,EVE,DE,DEbit,ROE,ROA,ProfMar,OperMar
+SM1,Test Company 1,S&P500 Test,Test,None,30000000,20000000,0,0,30.05,3.5,5.04,8.23,4.71,11.62,1.0146,1.556367,0.33,0.15,0.25,0.34
+SM2,Test Company 2,S&P500 Test,Test,None,15000000,25000000,0.01,0.5,35.0,2.2,4.7,9.5,2.8,15.9,0.4576,0.704898,0.25,0.09,0.11,0.22
