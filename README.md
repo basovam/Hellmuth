@@ -8,7 +8,7 @@ Replace `bot_token` with your bot token and `api_key` with your [AlphaVantage](h
 Fill path-section with correct file and folder paths.
 
 ## 2. Run data_file_maker.py for creation data file.
-It using [AlphaVantage](https://www.alphavantage.co) service to getting data. For correct work of the script premium api_kei is necessary.
+It using [AlphaVantage](https://www.alphavantage.co) service for getting data. For correct work of the script premium api_kei is necessary.
 
 ## 3. Start bot
 ```python3 main.py```
