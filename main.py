@@ -268,7 +268,7 @@ def ratio_sector_chart(wordlist, chat_id):
 										'ProfMar': sector_data.ProfMar.dropna().mean(),
 										'OperMar': sector_data.OperMar.dropna().mean()}, ignore_index=True)
 	#Drop unnormal values
-	if (ratio in ['PB', 'DE', 'DEbit', 'EVR', 'EVE']):
+	if (ratio in ['PB', 'DE', 'DEbit', 'EVR', 'EVE', 'dividendYield', 'PayRat']):
 		sector_data = sector_data.loc[sector_data[ratio] > 0]
 	elif (ratio == 'ROE'):
 		sector_data = sector_data.loc[sector_data[ratio] > -99999.9]
@@ -284,7 +284,7 @@ def ratio_sector_chart(wordlist, chat_id):
 											'MCap': company_data.iloc[0].MCap,
 											'Shares': company_data.iloc[0].Shares,
 											'dividendYield': 0,
-											'PayRat': 0,
+											'PayRat': np.nan,
 											'PE': np.nan,
 											'PEG': np.nan,
 											'PS': np.nan,
