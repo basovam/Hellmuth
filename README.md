@@ -4,7 +4,7 @@ You can try current version: [@Hellmuth_bot](https://telegram.dog/Hellmuth_bot)
 
 ## 1. Updating of config file.
 Change `hostname` and `serverport` if it necessary.\
-Replace `bot_token` with your bot token and 'api_key' with your [AlphaVantage](https://www.alphavantage.co) api key.\
+Replace `bot_token` with your bot token and `api_key` with your [AlphaVantage](https://www.alphavantage.co) api key.\
 Fill path-section with correct file and folder paths.
 
 ## 2. Run data_file_maker.py for creation data file.
