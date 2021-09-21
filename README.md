@@ -18,5 +18,4 @@ For example, with curl:\
 ```curl -F "url=https://<your url address>" https://api.telegram.org/bot<your bot token>/setWebhook```
 
 ## Todo list:
-- adding writing in log file in callback query processing section;
 - adding check for user language and english text of messages.
