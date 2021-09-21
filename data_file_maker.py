@@ -2,7 +2,6 @@ import configparser
 from bs4 import BeautifulSoup
 import requests
 import pandas as pd
-import time
 
 #Constant setup
 conf = configparser.ConfigParser()
