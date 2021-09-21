@@ -333,10 +333,15 @@ async def post_handler(request):
 		#Writing log
 		with open(LOG_FILE_PATH, 'a') as log_file:
 			# Current time | Chat Id | User Name | Message text
+			log_str = str(datetime.datetime.now()) + ' | '							# Current time
+			log_str += str(request_json['message']['chat']['id']) + ' | '			# Chat id
+			log_str += str(request_json['message']['chat']['first_name']) + ' | '	# User Name
 			if ('text' in request_json['message']):
-				log_file.write(str(datetime.datetime.now()) + ' | ' + str(request_json['message']['chat']['id']) + ' | ' + str(request_json['message']['chat']['first_name']) + ' | ' + str(request_json['message']['text']) + ' |\n')	 
+				log_str += str(request_json['message']['text']) + ' |\n'				# Message text
 			else:
-				log_file.write(str(datetime.datetime.now()) + ' | ' + str(request_json['message']['chat']['id']) + ' | ' + str(request_json['message']['chat']['first_name']) + ' | No message text |\n')
+				log_str += 'No message text |\n'										# or no-text log
+			log_file.write(log_str)
+		
 		#Make template of response
 		response_message = {'chat_id': request_json['message']['chat']['id'],
 							'text': ''
@@ -384,11 +389,22 @@ async def post_handler(request):
 			response_message['text'] = etc_txt
 			response = requests.post(BOT_REQUEST_URL + 'sendMessage', data=response_message)
 	elif ('callback_query' in request_json):
-		#	*Note*	log for callback
-		image_name = ratio_sector_chart(request_json['callback_query']['data'].split(), request_json['callback_query']['message']['chat']['id'])
-		with open(IMAGE_FOLDER + image_name, 'rb') as image_file:
-			response = requests.post(BOT_REQUEST_URL + 'sendPhoto', files={'photo': image_file}, data={'chat_id': request_json['callback_query']['message']['chat']['id']})
-		os.remove(IMAGE_FOLDER + image_name)
+		#Writing log
+		with open(LOG_FILE_PATH, 'a') as log_file:
+			log_str = str(datetime.datetime.now()) + ' | '										# Current time
+			log_str += str(request_json['callback_query']['from']['id']) + ' | '				# User Id
+			log_str += str(request_json['callback_query']['from']['first_name']) + ' | '		# User Name
+			if ('data' in request_json['callback_query']):
+				log_str += str(request_json['callback_query']['data']) + ' |\n'					# Query data
+			else:
+				log_str += 'Unexpected  callback_query |\n'										# or log message about unexpected query
+			log_file.write(log_str)	 
+			 
+		if ('data' in request_json['callback_query']):
+			image_name = ratio_sector_chart(request_json['callback_query']['data'].split(), request_json['callback_query']['from']['id'])
+			with open(IMAGE_FOLDER + image_name, 'rb') as image_file:
+				response = requests.post(BOT_REQUEST_URL + 'sendPhoto', files={'photo': image_file}, data={'chat_id': request_json['callback_query']['from']['id']})
+			os.remove(IMAGE_FOLDER + image_name)
 		response = requests.post(BOT_REQUEST_URL + 'answerCallbackQuery', data={'callback_query_id': request_json['callback_query']['id']})
 	else:
 		with open(LOG_FILE_PATH, 'a') as log_file:
