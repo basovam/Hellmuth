@@ -16,6 +16,3 @@ It using [AlphaVantage](https://www.alphavantage.co) service for getting data. F
 ## 4. Create a Webhook.
 For example, with curl:\
 ```curl -F "url=https://<your url address>" https://api.telegram.org/bot<your bot token>/setWebhook```
-
-## Todo list:
-- adding check for user language and english text of messages.
