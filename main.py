@@ -13,28 +13,18 @@ from urllib.error import HTTPError
 from aiohttp import web
 
 #Constant setup
-conf = configparser.ConfigParser()
-conf.read('config.ini')
+CONF = configparser.ConfigParser()
+CONF.read('config.ini')
 
-HOSTNAME = conf['SERVER_SETTINGS']['hostname']
-SERVERPORT = conf['SERVER_SETTINGS']['serverport']
+HOSTNAME = CONF['SERVER_SETTINGS']['hostname']
+SERVERPORT = CONF['SERVER_SETTINGS']['serverport']
 
-BOT_TOKEN = conf['BOT_SETTINGS']['bot_token']
+BOT_TOKEN = CONF['BOT_SETTINGS']['bot_token']
 BOT_REQUEST_URL = 'https://api.telegram.org/bot' + BOT_TOKEN + '/'
 
-LOG_FILE_PATH = conf['PATH_SETTINGS']['log_file_path']
-DATA_FILE_PATH = conf['PATH_SETTINGS']['data_file_path']
-IMAGE_FOLDER = conf['PATH_SETTINGS']['image_folder']
-
-#Message text setup
-hlp_txt = '''Добрый день. На текущий момент доступные следующие функции:
-/start - Базовая команда для начала взаимодействия с ботом;
-/help - Вывод справки;
-/stock - Вывод инфографики по мультипликаторам компании, входящей в индекс S&P 500. Необходимо указание тикера компании, например: /stock mmm
-/ratio - Вывод диаграммы выбранного мультипликатора для сектора указанной компании. Необходимо указание тикера компании, например: /ratio mmm
-/plot - Вывод свечного графика выбранного инструмента. Необходимо указание тикера, например: /plot mmm. Так же возможно указание интересующего периода, например /plot mmm 6mo. Доступные значения периода: 1mo, 3mo, 6mo, 1y, 5y. Значение по умолчанию - 1y.'''
-
-etc_txt = 'В сообщении не найдена ни одна из доступных команд. Описание доступных команд можно получить отправив сообщение /help'
+LOG_FILE_PATH = CONF['PATH_SETTINGS']['log_file_path']
+DATA_FILE_PATH = CONF['PATH_SETTINGS']['data_file_path']
+IMAGE_FOLDER = CONF['PATH_SETTINGS']['image_folder']
 
 ratio_title_dict = {	'PE': 'P/E',
 						'PEG': 'PEG',
@@ -74,7 +64,7 @@ def empty_space(axes, row, column):
 	axes[row,column].spines['left'].set_visible(False)
 	return axes
 
-def stocks_infographic(wordlist, chat_id):
+def stocks_infographic(wordlist, chat_id, language):
 	ticker_index = wordlist.index('/stock')+1
 	#Checking ticker in incomming message
 	if (ticker_index < len(wordlist)):
@@ -83,7 +73,7 @@ def stocks_infographic(wordlist, chat_id):
 		company_data = stocks_data.loc[stocks_data['Symbol'] == ticker]
 		if (company_data.shape[0] > 0):
 		#If ticker in S&P500
-			response = requests.post(BOT_REQUEST_URL + 'sendMessage', data={'chat_id': chat_id,	'text': 'Обработка запроса может занять более минуты.'})
+			response = requests.post(BOT_REQUEST_URL + 'sendMessage', data={'chat_id': chat_id,	'text': CONF[language]['delay_message']})
 			img_name = 'stock-'+str(chat_id)+'-'+str(datetime.datetime.now()).replace(' ','_')+'.png'
 			#Modify CompanyName string for printing on image
 			company_name = company_data.iloc[0].CompanyName
@@ -95,10 +85,10 @@ def stocks_infographic(wordlist, chat_id):
 			sector_index_name = company_data.iloc[0].Sector_index
 			sector_data = stocks_data.loc[stocks_data['Sector_index'] == sector_index_name]
 
-			tags_list = ['Среднее\nиндекса\nS&P 500',
-						'Среднее\nиндекса\n'+sector_index_name[:6]+sector_index_name[6:12].replace(' ','\n',1)+sector_index_name[12:].replace(' ','\n',1),
-						'Максимум\nиндекса\n'+sector_index_name[:6]+sector_index_name[6:12].replace(' ','\n',1)+sector_index_name[12:].replace(' ','\n',1),
-						'Минимум\nиндекса\n'+sector_index_name[:6]+sector_index_name[6:12].replace(' ','\n',1)+sector_index_name[12:].replace(' ','\n',1),
+			tags_list = [CONF[language]['mean_of_index'],
+						CONF[language]['mean_of_sector']+'\n'+sector_index_name[:6]+sector_index_name[6:12].replace(' ','\n',1)+sector_index_name[12:].replace(' ','\n',1),
+						CONF[language]['max_of_sector']+'\n'+sector_index_name[:6]+sector_index_name[6:12].replace(' ','\n',1)+sector_index_name[12:].replace(' ','\n',1),
+						CONF[language]['min_of_sector']+'\n'+sector_index_name[:6]+sector_index_name[6:12].replace(' ','\n',1)+sector_index_name[12:].replace(' ','\n',1),
 						company_name]
 
 			plt.rcParams.update({'font.size': 15})
@@ -144,11 +134,11 @@ def stocks_infographic(wordlist, chat_id):
 			fig.savefig(IMAGE_FOLDER + img_name)
 			return ('', img_name)
 		else:
-			return ('Тикер не найден в индексе S&P500.', '')
+			return (CONF[language]['no_found_message'], '')
 	else:
-		return ('Укажите тикер. Например: /stock mmm', '')
+		return (CONF[language]['no_ticker_message'].format('/stock'), '')
 
-def ratios_buttons_message(wordlist):
+def ratios_buttons_message(wordlist, language):
 	ticker_index = wordlist.index('/ratio')+1
 	#Checking ticker in incomming message
 	if ticker_index < len(wordlist):
@@ -163,21 +153,21 @@ def ratios_buttons_message(wordlist):
 							[{'text': 'EV/Revenue', 'callback_data': 'EVR ' + ticker}, {'text': 'EV/EBITDA', 'callback_data': 'EVE ' + ticker}],
 							[{'text': 'Profit Margin', 'callback_data': 'ProfMar ' + ticker}, {'text': 'Operating Margin', 'callback_data': 'OperMar ' + ticker}],
 							[{'text': 'Dividend Yield', 'callback_data': 'dividendYield ' + ticker}, {'text': 'Payout Ratio', 'callback_data': 'PayRat ' + ticker}]]
-			return ('Список доступных мультипликаторов:', buttons_list)
+			return (CONF[language]['ratio_message'], buttons_list)
 		else:
-			return ('Тикер не найден в индексе S&P500.', [])
+			return (CONF[language]['no_found_message'], [])
 	else:
-		return ('Укажите тикер. Например: /stock mmm', [])
+		return (CONF[language]['no_ticker_message'].format('/ratio'), [])
 
-def stock_candlestick_plot(wordlist, chat_id):
-	ticker_index = wordlist.index('/plot')+1
+def stock_candlestick_chart(wordlist, chat_id, language):
+	ticker_index = wordlist.index('/chart')+1
 	#Checking ticker in incomming message
 	if (ticker_index < len(wordlist)):
 		img_name = 'ratio-'+str(chat_id)+'-'+str(datetime.datetime.now()).replace(' ','_')+'.png'
 		ticker = wordlist.pop(ticker_index).upper()
 		period_index = ticker_index
 		if (period_index < len(wordlist)) and (wordlist[period_index] == '5y'):
-			response = requests.post(BOT_REQUEST_URL + 'sendMessage', data={'chat_id': chat_id,	'text': 'Обработка запроса может занять более минуты.'})
+			response = requests.post(BOT_REQUEST_URL + 'sendMessage', data={'chat_id': chat_id,	'text': CONF[language]['delay_message']})
 		
 		#Try to get company name 
 		if ((ticker.find('.ME') == -1) and (ticker.find('.DE') == -1)):
@@ -231,11 +221,11 @@ def stock_candlestick_plot(wordlist, chat_id):
 			fig.savefig(IMAGE_FOLDER + img_name, bbox_inches='tight')
 			return ('', img_name)
 		except HTTPError:
-			return ('Тикер не найден в индексе S&P500.', '')
+			return (CONF[language]['no_found_message'], '')
 	else:
-		return ('Укажите тикер. Например: /stock mmm', '')
+		return (CONF[language]['no_ticker_message'].format('/chart'), '')
 
-def ratio_sector_chart(wordlist, chat_id):
+def ratio_sector_chart(wordlist, chat_id, language):
 	img_name = 'ratio-'+str(chat_id)+'-'+str(datetime.datetime.now()).replace(' ','_')+'.png'
 	#	*Note*	Add check for incoming data
 	ratio = wordlist[0]
@@ -247,7 +237,7 @@ def ratio_sector_chart(wordlist, chat_id):
 	sector_data = stocks_data.loc[stocks_data['Sector_index'] == sector_index_name].dropna(subset=[ratio])
 	#Adding mean ratio values for sector
 	sector_data = sector_data.append({	'Symbol': '',
-										'CompanyName': 'Среднее сектора',
+										'CompanyName': 'Mean_of_the_sector',
 										'Sector_index': sector_index_name,
 										'Sector': '',
 										'Industry': '',
@@ -300,9 +290,9 @@ def ratio_sector_chart(wordlist, chat_id):
 	sector_data = sector_data.sort_values(by=[ratio], na_position='first').reset_index()
 			
 	fig, ax = plt.subplots(figsize=(20, sector_data.shape[0]/3))
-	ax.set_title(ratio_title_dict[ratio] + ' индекса ' + sector_index_name)
+	ax.set_title(ratio_title_dict[ratio] + ' ' + CONF[language]['ratio_title_filler'] + ' ' + sector_index_name)
 	barslist = ax.barh(sector_data['CompanyName'], sector_data[ratio])
-	barslist[sector_data.loc[sector_data['CompanyName'] == 'Среднее сектора'].index.values[0]].set_color('tab:orange')
+	barslist[sector_data.loc[sector_data['CompanyName'] == 'Mean_of_the_sector'].index.values[0]].set_color('tab:orange')
 	barslist[sector_data.loc[sector_data['Symbol'] == ticker].index.values[0]].set_color('tab:green')
 	indent = sector_data[ratio].max()/100
 	for i,v in enumerate(sector_data[ratio]):
@@ -335,7 +325,7 @@ async def post_handler(request):
 			# Current time | Chat Id | User Name | Message text
 			log_str = str(datetime.datetime.now()) + ' | '							# Current time
 			log_str += str(request_json['message']['chat']['id']) + ' | '			# Chat id
-			log_str += str(request_json['message']['chat']['first_name']) + ' | '	# User Name
+			log_str += str(request_json['message']['from']['first_name']) + ' | '	# User Name
 			if ('text' in request_json['message']):
 				log_str += str(request_json['message']['text']) + ' |\n'				# Message text
 			else:
@@ -352,15 +342,24 @@ async def post_handler(request):
 			#Checkind for command in text
 			msg_txt = request_json['message']['text'].lower()
 			if msg_txt.find('/start') + 1:
-				response_message['text'] = hlp_txt
+				if ('language_code' in request_json['message']['from']) and (request_json['message']['from']['language_code'] == 'ru'):
+					response_message['text'] = CONF['RUSSIAN_LANGUAGE']['hlp_txt']
+				else:
+					response_message['text'] = CONF['DEFAULT_LANGUAGE']['hlp_txt']
 				response = requests.post(BOT_REQUEST_URL + 'sendMessage', data=response_message)
 				command_found_in_text = True
 			if msg_txt.find('/help') + 1:
-				response_message['text'] = hlp_txt
+				if ('language_code' in request_json['message']['from']) and (request_json['message']['from']['language_code'] == 'ru'):
+					response_message['text'] = CONF['RUSSIAN_LANGUAGE']['hlp_txt']
+				else:
+					response_message['text'] = CONF['DEFAULT_LANGUAGE']['hlp_txt']
 				response = requests.post(BOT_REQUEST_URL + 'sendMessage', data=response_message)
 				command_found_in_text = True
 			if msg_txt.find('/stock') + 1:
-				response_message['text'], image_name = stocks_infographic(request_json['message']['text'].split(), response_message['chat_id'])
+				if ('language_code' in request_json['message']['from']) and (request_json['message']['from']['language_code'] == 'ru'):
+					response_message['text'], image_name = stocks_infographic(request_json['message']['text'].split(), response_message['chat_id'], 'RUSSIAN_LANGUAGE')
+				else:
+					response_message['text'], image_name = stocks_infographic(request_json['message']['text'].split(), response_message['chat_id'], 'DEFAULT_LANGUAGE')
 				if (len(image_name) > 0):
 					with open(IMAGE_FOLDER + image_name, 'rb') as image_file:
 						response = requests.post(BOT_REQUEST_URL + 'sendPhoto', files={'photo': image_file}, data={'chat_id': response_message['chat_id']})
@@ -368,13 +367,19 @@ async def post_handler(request):
 				response = requests.post(BOT_REQUEST_URL + 'sendMessage', data=response_message)
 				command_found_in_text = True
 			if msg_txt.find('/ratio') + 1:
-				response_message['text'], response_buttons_list = ratios_buttons_message(request_json['message']['text'].split()) # Разделение сообщения на слова
+				if ('language_code' in request_json['message']['from']) and (request_json['message']['from']['language_code'] == 'ru'):
+					response_message['text'], response_buttons_list = ratios_buttons_message(request_json['message']['text'].split(), 'RUSSIAN_LANGUAGE')
+				else:
+					response_message['text'], response_buttons_list = ratios_buttons_message(request_json['message']['text'].split(), 'DEFAULT_LANGUAGE')
 				if (len(response_buttons_list) > 0):
 					response_message['reply_markup'] = json.dumps({'inline_keyboard': response_buttons_list})
 				response = requests.post(BOT_REQUEST_URL + 'sendMessage', data=response_message)
 				command_found_in_text = True
-			if msg_txt.find('/plot') + 1:
-				response_message['text'], image_name = stock_candlestick_plot(request_json['message']['text'].split(), response_message['chat_id'])
+			if msg_txt.find('/chart') + 1:
+				if ('language_code' in request_json['message']['from']) and (request_json['message']['from']['language_code'] == 'ru'):
+					response_message['text'], image_name = stock_candlestick_chart(request_json['message']['text'].split(), response_message['chat_id'], 'RUSSIAN_LANGUAGE')
+				else:
+					response_message['text'], image_name = stock_candlestick_chart(request_json['message']['text'].split(), response_message['chat_id'], 'DEFAULT_LANGUAGE')
 				if (len(image_name) > 0):
 					with open(IMAGE_FOLDER + image_name, 'rb') as image_file:
 						response = requests.post(BOT_REQUEST_URL + 'sendPhoto', files={'photo': image_file}, data={'chat_id': response_message['chat_id']})
@@ -382,11 +387,18 @@ async def post_handler(request):
 				response = requests.post(BOT_REQUEST_URL + 'sendMessage', data=response_message)
 				command_found_in_text = True
 			if (not command_found_in_text):
-				response_message['text'] = etc_txt
+				if ('language_code' in request_json['message']['from']) and (request_json['message']['from']['language_code'] == 'ru'):
+					response_message['text'] = CONF['RUSSIAN_LANGUAGE']['etc_txt']
+				else:
+					response_message['text'] = CONF['DEFAULT_LANGUAGE']['etc_txt']
+				
 				response = requests.post(BOT_REQUEST_URL + 'sendMessage', data=response_message)
 		else:
 		#User can send message without text (like photo or other media). Bot must handle with this type of messages.
-			response_message['text'] = etc_txt
+			if ('language_code' in request_json['message']['from']) and (request_json['message']['from']['language_code'] == 'ru'):
+				response_message['text'] = CONF['RUSSIAN_LANGUAGE']['etc_txt']
+			else:
+				response_message['text'] = CONF['DEFAULT_LANGUAGE']['etc_txt']
 			response = requests.post(BOT_REQUEST_URL + 'sendMessage', data=response_message)
 	elif ('callback_query' in request_json):
 		#Writing log
@@ -401,7 +413,10 @@ async def post_handler(request):
 			log_file.write(log_str)	 
 			 
 		if ('data' in request_json['callback_query']):
-			image_name = ratio_sector_chart(request_json['callback_query']['data'].split(), request_json['callback_query']['from']['id'])
+			if ('language_code' in request_json['callback_query']['from']) and (request_json['callback_query']['from']['language_code'] == 'ru'):
+				image_name = ratio_sector_chart(request_json['callback_query']['data'].split(), request_json['callback_query']['from']['id'], 'RUSSIAN_LANGUAGE')
+			else:
+				image_name = ratio_sector_chart(request_json['callback_query']['data'].split(), request_json['callback_query']['from']['id'], 'DEFAULT_LANGUAGE')
 			with open(IMAGE_FOLDER + image_name, 'rb') as image_file:
 				response = requests.post(BOT_REQUEST_URL + 'sendPhoto', files={'photo': image_file}, data={'chat_id': request_json['callback_query']['from']['id']})
 			os.remove(IMAGE_FOLDER + image_name)
